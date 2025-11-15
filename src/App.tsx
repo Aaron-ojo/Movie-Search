@@ -1,4 +1,5 @@
-import MovieCard from "./components/MovieCard";
+import {lazy, Suspense} from "react";
+const MovieCard = lazy(() => import("./components/MovieCard"));
 import Search from "./components/Search";
 import { useState, useEffect } from "react";
 
@@ -14,12 +15,21 @@ const API_OPTIONS = {
 };
 
 const App = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [movieList, setMovieList] = useState([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [movieList, setMovieList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchMovies = async (query = "") => {
+  interface Movie{
+    id: number;
+    title: string;
+    vote_average: number;
+    poster_path: string;
+    release_date: string;
+    original_language: string;
+  }
+
+  const fetchMovies = async (query: string = "") => {
     setLoading(true);
     setErrorMessage("");
 
@@ -58,8 +68,11 @@ const App = () => {
         throw new Error(`Failed to fetch movies. Status: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log("API Response data:", data);
+      const data: {
+        results: Movie[];
+        success?: boolean;
+        status_message?: string;
+      } = await response.json()
 
       // TMDB uses 'success' property for errors, not 'response'
       if (data.success === false) {
@@ -142,18 +155,15 @@ const App = () => {
                 Found {movieList.length} movies
                 {searchTerm ? ` for "${searchTerm}"` : ""}
               </p>
+             
               <div className="flex flex-wrap justify-center gap-4 md:gap-6 lg:gap-8">
                 {movieList.map((movie) => (
-                  <MovieCard
-                    key={movie.id}
-                    title={movie.title}
-                    vote_average={movie.vote_average}
-                    poster_path={movie.poster_path}
-                    release_date={movie.release_date}
-                    original_language={movie.original_language}
-                  />
-                ))}
+                  <Suspense key={movie.id} fallback={<div>Loading...</div>}>
+                  <MovieCard key={movie.id} {...movie} /> 
+                  </Suspense>          
+                 ))}
               </div>
+              
             </div>
           )}
         </section>
